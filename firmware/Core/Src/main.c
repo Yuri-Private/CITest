@@ -1,5 +1,5 @@
 /*
- * CITest firmware: blinks LD2 (blue, PB7) on a NUCLEO-F767ZI every 500 ms.
+ * CITest firmware: blinks LD2 (blue, PB7) on a NUCLEO-F767ZI every 500 ms, after a 2 s fast start-up blink.
  * Bare metal, no HAL: the MCU runs from its 16 MHz internal oscillator (HSI) after reset.
  */
 #include <stdint.h>
@@ -53,6 +53,14 @@ int main(void)
   SYST_RVR = CORE_CLOCK_HZ / 1000U - 1U;  /* 1 ms tick */
   SYST_CVR = 0U;
   SYST_CSR = 7U;                          /* processor clock, interrupt, enable */
+
+  /* Start-up indication: fast blinking (100 ms) for 2 s after reset, then the LED off. */
+  for (uint32_t i = 0U; i < 20U; i++)
+  {
+    GPIOB_ODR ^= 1UL << LED_PIN;
+    delay_ms(100U);
+  }
+  GPIOB_ODR &= ~(1UL << LED_PIN);
 
   for (;;)
   {
