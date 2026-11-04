@@ -1,25 +1,40 @@
 name: Firmware (STM32)
 
 on:
+  # main is built by ci.yml (with version bump) and tags by release.yml; this covers the other branches.
   push:
-    branches: ['**']   # branches only: tags are built by release.yml
+    branches-ignore: [main]
     paths: ['firmware/**', '.github/workflows/firmware.yml']
   pull_request:
     paths: ['firmware/**', '.github/workflows/firmware.yml']
   workflow_dispatch:
-  # Called by release.yml with the version from the release tag.
   workflow_call:
     inputs:
-      version:
+      ref:
+        description: Commit to build (default: the commit that started the run)
         type: string
         required: false
         default: ''
+    outputs:
+      fw_version:
+        value: ${{ jobs.build.outputs.fw_version }}
+      ui_version:
+        value: ${{ jobs.build.outputs.ui_version }}
 
 jobs:
   build:
     runs-on: ubuntu-24.04
+    outputs:
+      fw_version: ${{ steps.version.outputs.fw_version }}
+      ui_version: ${{ steps.version.outputs.ui_version }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Version
+        id: version
+        run: bash ci/version.sh | tee -a "$GITHUB_OUTPUT"
 
       # Arm GNU Toolchain 13.3, the GCC generation bundled with current STM32CubeIDE versions.
       - uses: carlosperate/arm-none-eabi-gcc-action@v1
@@ -28,16 +43,14 @@ jobs:
 
       - name: Configure
         # A relative toolchain path is looked up under the build directory, then under the source directory (firmware/).
-        run: >
-          cmake -S firmware -B build -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi.cmake -DCMAKE_BUILD_TYPE=Release
-          -DFW_VERSION=${{ inputs.version || '0.0.0' }}
+        run: cmake -S firmware -B build -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi.cmake -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build
 
       - uses: actions/upload-artifact@v5
         with:
-          name: CITest_FW-${{ github.sha }}
+          name: CITest_FW-${{ steps.version.outputs.fw_version }}
           if-no-files-found: error
           path: |
             build/CITest_FW.elf

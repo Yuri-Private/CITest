@@ -4,6 +4,8 @@
  */
 #include <stdint.h>
 
+#include "version.h"
+
 #define REG32(addr)   (*(volatile uint32_t *)(addr))
 
 /* Reset and clock control */
@@ -22,13 +24,9 @@
 
 #define CORE_CLOCK_HZ 16000000UL
 
-#ifndef FW_VERSION
-#define FW_VERSION    "0.0.0"
-#endif
-
-/* Version string in flash: readable from the .bin/.hex or with a debugger. Kept by the linker script. */
+/* Version strings in flash: readable from the .bin/.hex or with a debugger. Kept by the linker script. */
 __attribute__((section(".fw_version"), used))
-static const char fw_version[] = "CITest FW " FW_VERSION;
+static const char fw_version[] = "CITest FW " FW_VERSION " for app " UI_VERSION;
 
 static volatile uint32_t ms_ticks;
 

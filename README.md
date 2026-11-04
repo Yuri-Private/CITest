@@ -9,26 +9,44 @@ They use common toolchains for such devices, so the workflows can be reused for 
 | `android/` | One-screen Android app | Gradle 8.13, Android Gradle Plugin 8.13.2, compileSdk 36, minSdk 29, Java 11, JDK 17 | `.github/workflows/android.yml`: debug and release (unsigned) APKs |
 | `firmware/` | LED blink for the STM32F767ZI (NUCLEO-F767ZI, LD2 on PB7), bare metal | Arm GNU Toolchain 13.3 with STM32CubeIDE Release options (Cortex-M7, hard float, newlib-nano, `-O1`), CMake | `.github/workflows/firmware.yml`: `.elf`, `.bin`, `.hex`, `.map` |
 
-Each workflow runs on pushes and pull requests that change its folder, and can be started by hand
+Pushes to `main` are built by `.github/workflows/ci.yml` (with the version bump below). Pushes to other branches
+and pull requests run `android.yml` / `firmware.yml` for the folder they change; both can also be started by hand
 (**Actions** → workflow → **Run workflow**). The build outputs are attached to each run as artifacts.
+
+## Versions
+
+Versions have the form `major.minor.revision.build` and live in the source code:
+
+| File | Content |
+|---|---|
+| `android/version.properties` | App version |
+| `firmware/Core/Inc/version.h` | Firmware version (`FW_VERSION_*`) and the app version the firmware is paired with (`UI_VERSION_*`) |
+
+Edit `major`, `minor` and `revision` by hand. The build number is CI's: on every push to `main`, `ci.yml` runs
+`ci/version.sh` and commits the result back to `main` before building:
+
+- the app changed: app build + 1, the new app version is written into `UI_VERSION_*`, and so the firmware
+  (whose source changed) gets build + 1 too;
+- only the firmware changed: firmware build + 1.
+
+Build numbers never reset, so the app's `versionCode` (= its build number) always increases.
+The firmware keeps `"CITest FW <fw version> for app <app version>"` in flash.
 
 ## Releases
 
-Push a tag `vX.Y.Z` to publish a release built from that commit:
+Push a tag `v*` on a commit of `main` to publish a release built from that commit:
 
 ```
-git tag -a v1.0.0 -m "CITest 1.0.0"
-git push origin v1.0.0
+git tag -a v1.0 -m "CITest 1.0"
+git push origin v1.0
 ```
 
-`.github/workflows/release.yml` builds the app and the firmware with version `X.Y.Z` (the app's `versionName`
-and `versionCode`, and the firmware's version string in flash), then creates a GitHub Release with:
+`.github/workflows/release.yml` builds the app and the firmware, checks that the firmware is paired with this app
+version, and creates a GitHub Release with:
 
-- `CITestApp-X.Y.Z-debug.apk`, `CITestApp-X.Y.Z-release-unsigned.apk`
-- `CITest_FW-X.Y.Z.elf`, `.bin`, `.hex`, `.map`
-- `build-info.txt` (tag, commit, build time, run link) and `SHA256SUMS`
-
-Builds without a tag use version `0.0.0`.
+- `CITestApp-<app version>-debug.apk`, `CITestApp-<app version>-release-unsigned.apk`
+- `CITest_FW-<fw version>.elf`, `.bin`, `.hex`, `.map`
+- `build-info.txt` (versions, tag, commit, build time, run link) and `SHA256SUMS`
 
 ## Building by hand
 

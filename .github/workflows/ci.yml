@@ -1,0 +1,84 @@
+name: CI (main)
+
+# Every push to main that changes the app or the firmware:
+#  1. increments the build number (b in x.y.z.b) and commits it back to main:
+#     - app changed: app build + 1, the new app version is written into the firmware (UI_VERSION_* in
+#       version.h), so the firmware source changed too: firmware build + 1 as well;
+#     - only firmware changed: firmware build + 1;
+#  2. builds what changed, from that version commit.
+# The version commit is pushed with the workflow's own token, which does not start another run.
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', 'firmware/**']
+
+# One run at a time, so two pushes never get the same build number.
+concurrency:
+  group: ci-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # push the version commit
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      android: ${{ steps.changes.outputs.android }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main          # latest main, including version commits of earlier runs
+          fetch-depth: 0
+
+      - name: What changed
+        id: changes
+        shell: bash
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          if [[ "$BEFORE" =~ ^0+$ ]] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            files=$(git ls-files)                       # new branch: treat everything as changed
+          else
+            files=$(git diff --name-only "$BEFORE" "$AFTER")
+          fi
+          if grep -q '^android/' <<<"$files"; then
+            parts="android firmware"; android=true
+          else
+            parts="firmware"; android=false
+          fi
+          echo "parts=$parts" >> "$GITHUB_OUTPUT"
+          echo "android=$android" >> "$GITHUB_OUTPUT"
+          echo "Changed: $parts"
+
+      - name: Bump the build numbers
+        id: bump
+        run: bash ci/version.sh ${{ steps.changes.outputs.parts }} | tee -a "$GITHUB_OUTPUT"
+
+      - name: Commit the versions
+        id: commit
+        shell: bash
+        env:
+          APP: ${{ steps.bump.outputs.app_version }}
+          FW: ${{ steps.bump.outputs.fw_version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Version: app $APP, firmware $FW"
+          git push origin HEAD:main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  firmware:
+    needs: version
+    uses: ./.github/workflows/firmware.yml
+    with:
+      ref: ${{ needs.version.outputs.sha }}
+
+  android:
+    needs: version
+    if: needs.version.outputs.android == 'true'
+    uses: ./.github/workflows/android.yml
+    with:
+      ref: ${{ needs.version.outputs.sha }}

@@ -1,8 +1,9 @@
 apply plugin: 'com.android.application'
 
-// Version X.Y.Z: from the release tag (the release workflow passes -PappVersionName=X.Y.Z), else 0.0.0.
-def appVersionName = (project.findProperty('appVersionName') ?: '0.0.0').toString()
-def (verMajor, verMinor, verPatch) = appVersionName.tokenize('.').collect { it as int }
+// Version major.minor.revision.build from version.properties; CI increments build on every build of main.
+def ver = new Properties()
+rootProject.file('version.properties').withInputStream { ver.load(it) }
+def appVersionName = "${ver.major}.${ver.minor}.${ver.revision}.${ver.build}".toString()
 
 android {
     namespace 'com.example.citest'
@@ -12,7 +13,8 @@ android {
         applicationId 'com.example.citest'
         minSdk 29
         targetSdk 34
-        versionCode Math.max(1, verMajor * 10000 + verMinor * 100 + verPatch)
+        // The build number never resets, so it alone keeps versionCode increasing (Android needs that for updates).
+        versionCode Math.max(1, ver.build as int)
         versionName appVersionName
     }
 

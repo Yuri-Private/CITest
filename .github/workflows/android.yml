@@ -1,25 +1,31 @@
 name: Android app
 
 on:
+  # main is built by ci.yml (with version bump) and tags by release.yml; this covers the other branches.
   push:
-    branches: ['**']   # branches only: tags are built by release.yml
+    branches-ignore: [main]
     paths: ['android/**', '.github/workflows/android.yml']
   pull_request:
     paths: ['android/**', '.github/workflows/android.yml']
   # Start by hand: Actions → Android app → Run workflow.
   workflow_dispatch:
-  # Called by release.yml with the version from the release tag.
   workflow_call:
     inputs:
-      version:
+      ref:
+        description: Commit to build (default: the commit that started the run)
         type: string
         required: false
         default: ''
+    outputs:
+      app_version:
+        value: ${{ jobs.build.outputs.app_version }}
 
 jobs:
   build:
     # Ubuntu 24.04 runner images come with the Android SDK installed (ANDROID_HOME) and its licenses accepted.
     runs-on: ubuntu-24.04
+    outputs:
+      app_version: ${{ steps.version.outputs.app_version }}
     defaults:
       run:
         working-directory: android
@@ -27,6 +33,12 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Version
+        id: version
+        run: bash ../ci/version.sh | tee -a "$GITHUB_OUTPUT"
 
       # AGP 8.13 needs JDK 17 or newer.
       - uses: actions/setup-java@v5
@@ -37,11 +49,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v5
 
       - name: Build debug and release APKs
-        env:
-          VERSION: ${{ inputs.version }}
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug assembleRelease ${VERSION:+-PappVersionName=$VERSION} 2>&1 | tee gradle.log
+          ./gradlew --no-daemon assembleDebug assembleRelease 2>&1 | tee gradle.log
 
       # Job logs are visible only to signed-in users; annotations are public, so the error is shown there too.
       - name: Report the Gradle error
@@ -52,6 +62,6 @@ jobs:
 
       - uses: actions/upload-artifact@v5
         with:
-          name: CITestApp-apk-${{ github.sha }}
+          name: CITestApp-${{ steps.version.outputs.app_version }}
           path: android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
