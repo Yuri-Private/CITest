@@ -2,11 +2,19 @@ name: Android app
 
 on:
   push:
+    branches: ['**']   # branches only: tags are built by release.yml
     paths: ['android/**', '.github/workflows/android.yml']
   pull_request:
     paths: ['android/**', '.github/workflows/android.yml']
   # Start by hand: Actions → Android app → Run workflow.
   workflow_dispatch:
+  # Called by release.yml with the version from the release tag.
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -29,10 +37,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v5
 
       - name: Build debug and release APKs
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
           chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug assembleRelease 2>&1 | tee gradle.log
+          ./gradlew --no-daemon assembleDebug assembleRelease ${VERSION:+-PappVersionName=$VERSION} 2>&1 | tee gradle.log
 
       # Job logs are visible only to signed-in users; annotations are public, so the error is shown there too.
       - name: Report the Gradle error

@@ -1,0 +1,85 @@
+name: Release
+
+# Push a tag vX.Y.Z to build the app and the firmware from that commit with version X.Y.Z
+# and publish them as a GitHub Release:
+#   git tag -a v1.0.0 -m "CITest 1.0.0"
+#   git push origin v1.0.0
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write   # create the release
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - id: version
+        shell: bash
+        run: |
+          tag="$GITHUB_REF_NAME"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error title=Bad release tag::Tag '$tag' is not vX.Y.Z (e.g. v1.0.0)"
+            exit 1
+          fi
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+  firmware:
+    needs: version
+    uses: ./.github/workflows/firmware.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+
+  android:
+    needs: version
+    uses: ./.github/workflows/android.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+
+  publish:
+    needs: [version, firmware, android]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+
+      - name: Package
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          mkdir dist
+          # Firmware: CITest_FW.elf -> CITest_FW-X.Y.Z.elf (and .bin, .hex, .map)
+          find artifacts -name 'CITest_FW.*' | while read -r f; do
+            cp "$f" "dist/CITest_FW-$VERSION.${f##*.}"
+          done
+          # App: app-debug.apk -> CITestApp-X.Y.Z-debug.apk, app-release-unsigned.apk -> CITestApp-X.Y.Z-release-unsigned.apk
+          find artifacts -name '*.apk' | while read -r f; do
+            name=$(basename "$f" .apk)
+            cp "$f" "dist/CITestApp-$VERSION-${name#app-}.apk"
+          done
+          cat > dist/build-info.txt <<EOF
+          Version:  $VERSION
+          Tag:      $GITHUB_REF_NAME
+          Commit:   $GITHUB_SHA
+          Built:    $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          Run:      $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          EOF
+          sed -i 's/^ *//' dist/build-info.txt
+          (cd dist && sha256sum * > SHA256SUMS)
+          ls -l dist
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "CITest $VERSION" \
+            --notes "App and firmware built from $GITHUB_SHA. Checksums in SHA256SUMS, build details in build-info.txt."

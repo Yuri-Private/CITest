@@ -38,6 +38,7 @@ SECTIONS
   .rodata :
   {
     . = ALIGN(4);
+    KEEP(*(.fw_version))
     *(.rodata)
     *(.rodata*)
     . = ALIGN(4);

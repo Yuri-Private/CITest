@@ -12,7 +12,10 @@ add_executable(${PROJECT_NAME}.elf
     Core/Src/main.c
     Core/Startup/startup_stm32f767zitx.c)
 
-target_compile_definitions(${PROJECT_NAME}.elf PRIVATE STM32F767xx STM32F7)
+# Version X.Y.Z: from the release tag (the release workflow passes -DFW_VERSION=X.Y.Z), else 0.0.0.
+set(FW_VERSION "0.0.0" CACHE STRING "Firmware version")
+
+target_compile_definitions(${PROJECT_NAME}.elf PRIVATE STM32F767xx STM32F7 "FW_VERSION=\"${FW_VERSION}\"")
 
 target_compile_options(${PROJECT_NAME}.elf PRIVATE
     ${MCU_FLAGS}

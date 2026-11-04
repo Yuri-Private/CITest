@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+// Version X.Y.Z: from the release tag (the release workflow passes -PappVersionName=X.Y.Z), else 0.0.0.
+def appVersionName = (project.findProperty('appVersionName') ?: '0.0.0').toString()
+def (verMajor, verMinor, verPatch) = appVersionName.tokenize('.').collect { it as int }
+
 android {
     namespace 'com.example.citest'
     compileSdk 36
@@ -8,8 +12,8 @@ android {
         applicationId 'com.example.citest'
         minSdk 29
         targetSdk 34
-        versionCode 1
-        versionName '1.0.0'
+        versionCode Math.max(1, verMajor * 10000 + verMinor * 100 + verPatch)
+        versionName appVersionName
     }
 
     buildTypes {

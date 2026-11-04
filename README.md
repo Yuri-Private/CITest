@@ -12,6 +12,24 @@ They use common toolchains for such devices, so the workflows can be reused for 
 Each workflow runs on pushes and pull requests that change its folder, and can be started by hand
 (**Actions** → workflow → **Run workflow**). The build outputs are attached to each run as artifacts.
 
+## Releases
+
+Push a tag `vX.Y.Z` to publish a release built from that commit:
+
+```
+git tag -a v1.0.0 -m "CITest 1.0.0"
+git push origin v1.0.0
+```
+
+`.github/workflows/release.yml` builds the app and the firmware with version `X.Y.Z` (the app's `versionName`
+and `versionCode`, and the firmware's version string in flash), then creates a GitHub Release with:
+
+- `CITestApp-X.Y.Z-debug.apk`, `CITestApp-X.Y.Z-release-unsigned.apk`
+- `CITest_FW-X.Y.Z.elf`, `.bin`, `.hex`, `.map`
+- `build-info.txt` (tag, commit, build time, run link) and `SHA256SUMS`
+
+Builds without a tag use version `0.0.0`.
+
 ## Building by hand
 
 Android (JDK 17 and the Android SDK):
