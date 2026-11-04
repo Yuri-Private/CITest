@@ -29,5 +29,8 @@ android {
 }
 
 dependencies {
+    // Aligns all Kotlin stdlib artifacts to one version: appcompat brings kotlin-stdlib 1.8.22, while a transitive
+    // dependency still asks for kotlin-stdlib-jdk7/-jdk8 1.6.21, whose classes moved into kotlin-stdlib in 1.8.
+    implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
     implementation 'androidx.appcompat:appcompat:1.7.1'
 }
