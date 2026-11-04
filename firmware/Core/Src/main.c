@@ -57,6 +57,6 @@ int main(void)
   for (;;)
   {
     GPIOB_ODR ^= 1UL << LED_PIN;
-    delay_ms(500U);
+    delay_ms(250U);  /* toggle twice per blink: one blink every 500 ms */
   }
 }
