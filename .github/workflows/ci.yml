@@ -10,7 +10,10 @@ name: CI (main)
 on:
   push:
     branches: [main]
-    paths: ['android/**', 'firmware/**']
+    # Changes to the CI itself also run it: both are built, no build number changes.
+    paths: ['android/**', 'firmware/**', 'ci/**', '.github/workflows/**']
+  # Start by hand: Actions → CI (main) → Run workflow. Builds both, no build number changes.
+  workflow_dispatch:
 
 # One run at a time, so two pushes never get the same build number.
 concurrency:
@@ -36,18 +39,23 @@ jobs:
         id: changes
         shell: bash
         env:
+          EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}
         run: |
-          if [[ "$BEFORE" =~ ^0+$ ]] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+          if [ "$EVENT" != push ]; then
+            files=""                                    # started by hand: nothing to bump
+          elif [[ "$BEFORE" =~ ^0+$ ]] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
             files=$(git ls-files)                       # new branch: treat everything as changed
           else
             files=$(git diff --name-only "$BEFORE" "$AFTER")
           fi
           if grep -q '^android/' <<<"$files"; then
-            parts="android firmware"; android=true
-          else
+            parts="android firmware"; android=true      # app changed: its version goes into the firmware too
+          elif grep -q '^firmware/' <<<"$files"; then
             parts="firmware"; android=false
+          else
+            parts=""; android=true                      # only CI changed, or started by hand: build both
           fi
           echo "parts=$parts" >> "$GITHUB_OUTPUT"
           echo "android=$android" >> "$GITHUB_OUTPUT"
@@ -63,11 +71,14 @@ jobs:
         env:
           APP: ${{ steps.bump.outputs.app_version }}
           FW: ${{ steps.bump.outputs.fw_version }}
+          PARTS: ${{ steps.changes.outputs.parts }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "Version: app $APP, firmware $FW"
-          git push origin HEAD:main
+          if [ -n "$PARTS" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -am "Version: app $APP, firmware $FW"
+            git push origin HEAD:main
+          fi
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   firmware:

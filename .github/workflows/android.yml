@@ -12,7 +12,7 @@ on:
   workflow_call:
     inputs:
       ref:
-        description: Commit to build (default: the commit that started the run)
+        description: "Commit to build (default: the commit that started the run)"
         type: string
         required: false
         default: ''
