@@ -1,0 +1,34 @@
+name: Firmware (STM32)
+
+on:
+  push:
+    paths: ['firmware/**', '.github/workflows/firmware.yml']
+  pull_request:
+    paths: ['firmware/**', '.github/workflows/firmware.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Arm GNU Toolchain 13.3, the GCC generation bundled with current STM32CubeIDE versions.
+      - uses: carlosperate/arm-none-eabi-gcc-action@v1
+        with:
+          release: '13.3.Rel1'
+
+      - name: Configure
+        run: cmake -S firmware -B build -DCMAKE_TOOLCHAIN_FILE=firmware/cmake/arm-none-eabi.cmake -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CITest_FW-${{ github.sha }}
+          path: |
+            build/CITest_FW.elf
+            build/CITest_FW.bin
+            build/CITest_FW.hex
+            build/CITest_FW.map
