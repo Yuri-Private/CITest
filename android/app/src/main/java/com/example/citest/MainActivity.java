@@ -14,5 +14,8 @@ public class MainActivity extends AppCompatActivity {
 
         TextView version = findViewById(R.id.version);
         version.setText(getString(R.string.version_text, BuildConfig.VERSION_NAME));
+
+        TextView appId = findViewById(R.id.app_id);
+        appId.setText(getPackageName());
     }
 }
