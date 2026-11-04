@@ -1,0 +1,45 @@
+name: Release notes
+
+# Release notes (Markdown + Word) for one commit: features and defect fixes since the baseline
+# (the previous v* tag, or the commit in release-baseline). Called by ci.yml for every build of main and
+# by release.yml for every release; can also be started by hand for any branch.
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Commit to describe (default: the commit that started the run)"
+        type: string
+        required: false
+        default: ''
+
+jobs:
+  notes:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0   # full history and tags, so the notes reach back to the baseline
+
+      - name: Write the release notes
+        id: notes
+        shell: bash
+        run: |
+          bash ci/version.sh | tee -a "$GITHUB_OUTPUT"
+          python3 ci/release-notes.py --output notes/release-notes.md
+          cat notes/release-notes.md >> "$GITHUB_STEP_SUMMARY"   # shown on the run page
+
+      - name: Convert to Word
+        shell: bash
+        run: |
+          sudo apt-get install -y -qq pandoc > /dev/null
+          pandoc notes/release-notes.md -o notes/release-notes.docx
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ReleaseNotes-app-${{ steps.notes.outputs.app_version }}-fw-${{ steps.notes.outputs.fw_version }}
+          if-no-files-found: error
+          path: |
+            notes/release-notes.md
+            notes/release-notes.docx

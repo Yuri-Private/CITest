@@ -5,6 +5,7 @@ name: Release
 #   git push origin v1.0
 # The files carry the versions from the source (android/version.properties, firmware/Core/Inc/version.h).
 # The release fails if the firmware is not paired with this app version (UI_VERSION != app version).
+# The release notes (features and defect fixes since the previous v* tag) become the release text.
 on:
   push:
     tags: ['v*']
@@ -19,8 +20,11 @@ jobs:
   android:
     uses: ./.github/workflows/android.yml
 
+  release-notes:
+    uses: ./.github/workflows/release-notes.yml
+
   publish:
-    needs: [firmware, android]
+    needs: [firmware, android, release-notes]
     runs-on: ubuntu-24.04
     steps:
       - name: Check the app-firmware pairing
@@ -54,6 +58,10 @@ jobs:
             name=$(basename "$f" .apk)
             cp "$f" "dist/CITestApp-$APP-${name#app-}.apk"
           done
+          # Release notes: release-notes.md/.docx -> ReleaseNotes-<tag>.md/.docx
+          find artifacts -name 'release-notes.*' | while read -r f; do
+            cp "$f" "dist/ReleaseNotes-$GITHUB_REF_NAME.${f##*.}"
+          done
           {
             echo "Release:   $GITHUB_REF_NAME"
             echo "App:       $APP"
@@ -68,11 +76,10 @@ jobs:
       - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          APP: ${{ needs.android.outputs.app_version }}
-          FW: ${{ needs.firmware.outputs.fw_version }}
         run: |
+          # The release page shows the release notes; the same notes are attached as .md and .docx.
           gh release create "$GITHUB_REF_NAME" dist/* \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             --title "CITest $GITHUB_REF_NAME" \
-            --notes "App $APP and firmware $FW, built from $GITHUB_SHA. Checksums in SHA256SUMS, build details in build-info.txt."
+            --notes-file "dist/ReleaseNotes-$GITHUB_REF_NAME.md"

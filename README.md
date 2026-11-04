@@ -32,6 +32,26 @@ Edit `major`, `minor` and `revision` by hand. The build number is CI's: on every
 Build numbers never reset, so the app's `versionCode` (= its build number) always increases.
 The firmware keeps `"CITest FW <fw version> for app <app version>"` in flash.
 
+## Commit messages and release notes
+
+Release notes are generated from git for every build of `main` (artifact `ReleaseNotes-…`, also shown on the
+run page) and for every release (release text, plus `.md` and `.docx` files). They list the features and the
+defect fixes since the baseline: the previous `v*` tag, or the tag or commit written in a file `release-baseline`.
+
+For that, start each commit message with its type and, optionally, the part it changes
+([Conventional Commits](https://www.conventionalcommits.org/)):
+
+| Message | Listed under |
+|---|---|
+| `feat(app): Add PIN screen` | Features → App |
+| `fix(fw): Tip timeout at 0 s (#42)` | Defects fixed → Firmware, linked to issue 42 |
+| `feat(fw)!: New UI protocol v2` | Features → Firmware, marked breaking |
+| `docs: …`, `refactor(app): …`, `ci: …`, `test: …`, `chore: …` | Other changes |
+
+Scopes: `app` (or `android`, `ui`), `fw` (or `firmware`), `ci`. A `BREAKING CHANGE:` line in the message body also
+marks a change as breaking, and issue numbers (`#42`) in the body are linked too. Commits without a type are listed
+under Other changes, and CI shows a warning for each of them.
+
 ## Releases
 
 Push a tag `v*` on a commit of `main` to publish a release built from that commit:

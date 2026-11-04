@@ -7,3 +7,6 @@ local.properties
 .idea/
 *.iml
 .vscode/
+
+# Python
+__pycache__/

@@ -61,6 +61,18 @@ jobs:
           echo "android=$android" >> "$GITHUB_OUTPUT"
           echo "Changed: $parts"
 
+      # Release notes sort commits by their type prefix (feat:, fix:, ...); warn about commits without one.
+      - name: Check commit messages
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          if [[ ! "$BEFORE" =~ ^0+$ ]] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            python3 ci/release-notes.py --lint "$BEFORE..$AFTER"
+          fi
+
       - name: Bump the build numbers
         id: bump
         run: bash ci/version.sh ${{ steps.changes.outputs.parts }} | tee -a "$GITHUB_OUTPUT"
@@ -91,5 +103,11 @@ jobs:
     needs: version
     if: needs.version.outputs.android == 'true'
     uses: ./.github/workflows/android.yml
+    with:
+      ref: ${{ needs.version.outputs.sha }}
+
+  release-notes:
+    needs: version
+    uses: ./.github/workflows/release-notes.yml
     with:
       ref: ${{ needs.version.outputs.sha }}
