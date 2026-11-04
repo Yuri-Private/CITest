@@ -9,6 +9,7 @@ on:
 
 jobs:
   build:
+    # Ubuntu 24.04 runner images come with the Android SDK installed (ANDROID_HOME) and its licenses accepted.
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -22,16 +23,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # Installs the Android SDK command-line tools and accepts the SDK licenses on the runner;
-      # Gradle then downloads the platform and build tools the project needs (compileSdk 36).
-      - uses: android-actions/setup-android@v3
-
       - uses: gradle/actions/setup-gradle@v5
 
       - name: Build debug and release APKs
         run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
           chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug assembleRelease
+          ./gradlew --no-daemon assembleDebug assembleRelease 2>&1 | tee gradle.log
+
+      # Job logs are visible only to signed-in users; annotations are public, so the error is shown there too.
+      - name: Report the Gradle error
+        if: failure()
+        run: |
+          msg=$( (grep -A 20 'What went wrong' gradle.log || tail -n 30 gradle.log) | head -n 40 | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')
+          echo "::error title=Gradle build failed::$msg"
 
       - uses: actions/upload-artifact@v5
         with:
