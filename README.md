@@ -7,7 +7,7 @@ They use common toolchains for such devices, so the workflows can be reused for 
 | Folder | Example | Toolchain | Workflow |
 |---|---|---|---|
 | `android/` | One-screen Android app | Gradle 8.13, Android Gradle Plugin 8.13.2, compileSdk 36, minSdk 29, Java 11, JDK 17 | `.github/workflows/android.yml`: debug and release (unsigned) APKs |
-| `firmware/` | LED blink for the STM32F767ZI (NUCLEO-F767ZI, LD2 on PB7), bare metal | Arm GNU Toolchain 13.3 with STM32CubeIDE Release options (Cortex-M7, hard float, newlib-nano, `-O1`), CMake | `.github/workflows/firmware.yml`: `.elf`, `.bin`, `.hex`, `.map` |
+| `firmware/` | LED blink for the STM32F767ZI (NUCLEO-F767ZI, LD2 on PB7), bare metal: 2 s of fast blinking after reset, then one blink every 500 ms | Arm GNU Toolchain 13.3 with STM32CubeIDE Release options (Cortex-M7, hard float, newlib-nano, `-O1`), CMake | `.github/workflows/firmware.yml`: `.elf`, `.bin`, `.hex`, `.map` |
 
 Pushes to `main` are built by `.github/workflows/ci.yml` (with the version bump below). Pushes to other branches
 and pull requests run `android.yml` / `firmware.yml` for the folder they change; both can also be started by hand
