@@ -10,13 +10,13 @@
 #define FW_VERSION_MAJOR     1
 #define FW_VERSION_MINOR     0
 #define FW_VERSION_REVISION  0
-#define FW_VERSION_BUILD     1
+#define FW_VERSION_BUILD     2
 
 /* Version of the Android app this firmware is paired with (written by the Android CI build) */
 #define UI_VERSION_MAJOR     1
 #define UI_VERSION_MINOR     0
 #define UI_VERSION_REVISION  0
-#define UI_VERSION_BUILD     1
+#define UI_VERSION_BUILD     2
 
 #define VERSION_STR_(x)  #x
 #define VERSION_STR(x)   VERSION_STR_(x)
