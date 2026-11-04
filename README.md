@@ -24,6 +24,6 @@ cd android
 Firmware (CMake and the Arm GNU Toolchain on the path):
 
 ```
-cmake -S firmware -B build -DCMAKE_TOOLCHAIN_FILE=firmware/cmake/arm-none-eabi.cmake -DCMAKE_BUILD_TYPE=Release
+cmake -S firmware -B build -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi.cmake -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```

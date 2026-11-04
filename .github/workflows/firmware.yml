@@ -9,9 +9,9 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Arm GNU Toolchain 13.3, the GCC generation bundled with current STM32CubeIDE versions.
       - uses: carlosperate/arm-none-eabi-gcc-action@v1
@@ -19,12 +19,13 @@ jobs:
           release: '13.3.Rel1'
 
       - name: Configure
-        run: cmake -S firmware -B build -DCMAKE_TOOLCHAIN_FILE=firmware/cmake/arm-none-eabi.cmake -DCMAKE_BUILD_TYPE=Release
+        # A relative toolchain path is looked up under the build directory, then under the source directory (firmware/).
+        run: cmake -S firmware -B build -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi.cmake -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: CITest_FW-${{ github.sha }}
           path: |

@@ -1,7 +1,7 @@
 # CITest firmware for the STM32F767ZI, built with the same compiler options as an STM32CubeIDE
 # Release configuration of the real device firmware (Cortex-M7, hard float, newlib-nano, -O1).
 #
-#   cmake -S firmware -B build -DCMAKE_TOOLCHAIN_FILE=firmware/cmake/arm-none-eabi.cmake -DCMAKE_BUILD_TYPE=Release
+#   cmake -S firmware -B build -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi.cmake -DCMAKE_BUILD_TYPE=Release
 #   cmake --build build
 cmake_minimum_required(VERSION 3.22)
 project(CITest_FW C)
