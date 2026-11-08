@@ -1,7 +1,7 @@
 name: Release notes
 
 # Release notes (Markdown + Word) for one commit: features and defect fixes since the baseline
-# (the previous v* tag, or the commit in release-baseline). Called by ci.yml for every build of main and
+# (the previous v* tag, or the commit in release-baseline). Called by ci.yml for every build of dev and
 # by release.yml for every release; can also be started by hand for any branch.
 on:
   workflow_dispatch:
