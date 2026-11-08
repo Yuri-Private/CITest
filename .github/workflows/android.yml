@@ -4,9 +4,9 @@ on:
   # dev is built by ci.yml (with version bump) and tags by release.yml; this covers main and the other branches.
   push:
     branches-ignore: [dev]
-    paths: ['android/**', '.github/workflows/android.yml']
+    paths: ['android/**', 'ci/test-report.py', '.github/workflows/android.yml']
   pull_request:
-    paths: ['android/**', '.github/workflows/android.yml']
+    paths: ['android/**', 'ci/test-report.py', '.github/workflows/android.yml']
   # Start by hand: Actions → Android app → Run workflow.
   workflow_dispatch:
   workflow_call:
@@ -48,14 +48,24 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
 
-      - name: Build debug and release APKs
+      # JVM unit tests (app/src/test); the APKs are built only if they pass.
+      - name: Unit tests
+        id: tests
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug assembleRelease 2>&1 | tee gradle.log
+          ./gradlew --no-daemon testDebugUnitTest 2>&1 | tee gradle.log
+
+      - name: Test results
+        if: always() && steps.tests.outcome != 'skipped'
+        run: python3 ../ci/test-report.py "Android unit tests" "app/build/test-results/testDebugUnitTest/*.xml"
+
+      - name: Build debug and release APKs
+        id: build
+        run: ./gradlew --no-daemon assembleDebug assembleRelease 2>&1 | tee -a gradle.log
 
       # Job logs are visible only to signed-in users; annotations are public, so the error is shown there too.
       - name: Report the Gradle error
-        if: failure()
+        if: failure() && (steps.tests.outcome == 'failure' || steps.build.outcome == 'failure')
         run: |
           msg=$( (grep -A 20 'What went wrong' gradle.log || tail -n 30 gradle.log) | head -n 40 | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')
           echo "::error title=Gradle build failed::$msg"
@@ -65,3 +75,11 @@ jobs:
           name: CITestApp-${{ steps.version.outputs.app_version }}
           path: android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
+
+      - name: Keep the test report
+        if: always() && steps.tests.outcome != 'skipped'
+        uses: actions/upload-artifact@v5
+        with:
+          name: CITestApp-unit-tests-${{ steps.version.outputs.app_version }}
+          path: android/app/build/reports/tests/testDebugUnitTest/
+          if-no-files-found: ignore

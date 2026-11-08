@@ -24,6 +24,19 @@ They use common toolchains for such devices, so the workflows can be reused for 
 All of them can also be started by hand (**Actions** → workflow → **Run workflow**).
 The build outputs are attached to each run as artifacts.
 
+## Unit tests
+
+Every build runs the unit tests first, on pull requests too; a failed test fails the run, so a pull request
+shows a failed check and a release is not published.
+
+| Part | Tests | Run by hand |
+|---|---|---|
+| App | JUnit tests on the JVM in `android/app/src/test` | `cd android && ./gradlew testDebugUnitTest` |
+| Firmware | Host tests in `firmware/test`: the hardware-free modules (e.g. `Core/Src/blink.c`) compiled with the PC's GCC and tested with [Unity](https://github.com/ThrowTheSwitch/Unity) | `cmake -S firmware/test -B build-test && cmake --build build-test && ctest --test-dir build-test` |
+
+The results are shown on the run page, failed tests also as annotations (`ci/test-report.py`), and the app's
+HTML test report is kept as an artifact. Keep hardware access out of the modules you test, as in `blink.c`.
+
 ## Versions
 
 Versions have the form `major.minor.revision.build` and live in the source code:
