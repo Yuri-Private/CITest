@@ -4,9 +4,9 @@ on:
   # dev is built by ci.yml (with version bump) and tags by release.yml; this covers main and the other branches.
   push:
     branches-ignore: [dev]
-    paths: ['firmware/**', '.github/workflows/firmware.yml']
+    paths: ['firmware/**', 'ci/test-report.py', '.github/workflows/firmware.yml']
   pull_request:
-    paths: ['firmware/**', '.github/workflows/firmware.yml']
+    paths: ['firmware/**', 'ci/test-report.py', '.github/workflows/firmware.yml']
   workflow_dispatch:
   workflow_call:
     inputs:
@@ -22,6 +22,28 @@ on:
         value: ${{ jobs.build.outputs.ui_version }}
 
 jobs:
+  # Host unit tests (firmware/test): the hardware-free firmware modules, compiled with the runner's own GCC
+  # and tested with Unity. Runs beside the build; a failed test fails the run (and a release).
+  unit-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Build the tests
+        run: |
+          cmake -S firmware/test -B build-test
+          cmake --build build-test
+
+      - name: Unit tests
+        id: tests
+        run: ctest --test-dir build-test --output-on-failure --output-junit test-results.xml
+
+      - name: Test results
+        if: always() && steps.tests.outcome != 'skipped'
+        run: python3 ci/test-report.py "Firmware unit tests" build-test/test-results.xml
+
   build:
     runs-on: ubuntu-24.04
     outputs:

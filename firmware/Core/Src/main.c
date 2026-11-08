@@ -4,6 +4,7 @@
  */
 #include <stdint.h>
 
+#include "blink.h"
 #include "version.h"
 
 #define REG32(addr)   (*(volatile uint32_t *)(addr))
@@ -54,17 +55,13 @@ int main(void)
   SYST_CVR = 0U;
   SYST_CSR = 7U;                          /* processor clock, interrupt, enable */
 
-  /* Start-up indication: fast blinking (100 ms) for 2 s after reset, then the LED off. */
-  for (uint32_t i = 0U; i < 20U; i++)
-  {
-    GPIOB_ODR ^= 1UL << LED_PIN;
-    delay_ms(100U);
-  }
-  GPIOB_ODR &= ~(1UL << LED_PIN);
-
+  /* Fast blinking for 2 s after reset, then one blink every 500 ms (pattern in blink.c). The start-up phase
+     has an even number of toggles, so it ends with the LED off. */
+  uint32_t toggle = 0U;
   for (;;)
   {
     GPIOB_ODR ^= 1UL << LED_PIN;
-    delay_ms(250U);  /* toggle twice per blink: one blink every 500 ms */
+    delay_ms(blink_delay_ms(toggle));
+    toggle = blink_next_toggle(toggle);
   }
 }

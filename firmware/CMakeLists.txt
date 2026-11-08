@@ -10,6 +10,7 @@ set(MCU_FLAGS -mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard)
 
 add_executable(${PROJECT_NAME}.elf
     Core/Src/main.c
+    Core/Src/blink.c
     Core/Startup/startup_stm32f767zitx.c)
 
 target_include_directories(${PROJECT_NAME}.elf PRIVATE Core/Inc)

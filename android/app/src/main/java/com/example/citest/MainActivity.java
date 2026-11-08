@@ -13,7 +13,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         TextView version = findViewById(R.id.version);
-        version.setText(getString(R.string.version_text, BuildConfig.VERSION_NAME));
+        version.setText(getString(R.string.version_text, Version.parse(BuildConfig.VERSION_NAME).toString()));
 
         TextView appId = findViewById(R.id.app_id);
         appId.setText(getPackageName());

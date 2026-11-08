@@ -1,7 +1,7 @@
 /*
  * Version numbers major.minor.revision.build.
  * Edit FW_VERSION_MAJOR / _MINOR / _REVISION by hand. CI (ci/version.sh) increments FW_VERSION_BUILD
- * on every firmware build of main, and writes UI_VERSION_* whenever the Android app is built.
+ * on every firmware change merged into dev, and writes UI_VERSION_* whenever the Android app is built.
  */
 #ifndef VERSION_H
 #define VERSION_H
