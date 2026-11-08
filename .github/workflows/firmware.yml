@@ -1,9 +1,9 @@
 name: Firmware (STM32)
 
 on:
-  # main is built by ci.yml (with version bump) and tags by release.yml; this covers the other branches.
+  # dev is built by ci.yml (with version bump) and tags by release.yml; this covers main and the other branches.
   push:
-    branches-ignore: [main]
+    branches-ignore: [dev]
     paths: ['firmware/**', '.github/workflows/firmware.yml']
   pull_request:
     paths: ['firmware/**', '.github/workflows/firmware.yml']
