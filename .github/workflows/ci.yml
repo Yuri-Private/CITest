@@ -1,8 +1,8 @@
-name: CI (dev)
+name: CI (develop)
 
-# dev is the integration branch: pull requests are merged into dev, and main gets dev's commits for releases.
-# Every push (merge) to dev that changes the app or the firmware:
-#  1. increments the build number (b in x.y.z.b) and commits it back to dev:
+# develop is the integration branch: pull requests are merged into develop, and main gets develop's commits for releases.
+# Every push (merge) to develop that changes the app or the firmware:
+#  1. increments the build number (b in x.y.z.b) and commits it back to develop:
 #     - app changed: app build + 1, the new app version is written into the firmware (UI_VERSION_* in
 #       version.h), so the firmware source changed too: firmware build + 1 as well;
 #     - only firmware changed: firmware build + 1;
@@ -10,15 +10,15 @@ name: CI (dev)
 # The version commit is pushed with the workflow's own token, which does not start another run.
 on:
   push:
-    branches: [dev]
+    branches: [develop]
     # Changes to the CI itself also run it: both are built, no build number changes.
     paths: ['android/**', 'firmware/**', 'ci/**', '.github/workflows/**']
-  # Start by hand: Actions → CI (dev) → Run workflow. Builds both, no build number changes.
+  # Start by hand: Actions → CI (develop) → Run workflow. Builds both, no build number changes.
   workflow_dispatch:
 
 # One run at a time, so two pushes never get the same build number.
 concurrency:
-  group: ci-dev
+  group: ci-develop
   cancel-in-progress: false
 
 permissions:
@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: dev           # latest dev, including version commits of earlier runs
+          ref: develop           # latest develop, including version commits of earlier runs
           fetch-depth: 0
 
       - name: What changed
@@ -47,7 +47,7 @@ jobs:
           if [ "$EVENT" != push ]; then
             files=""                                    # started by hand: nothing to bump
           elif [[ "$BEFORE" =~ ^0+$ ]] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            # dev was just created (or force-pushed): compare with main, where it branched off
+            # develop was just created (or force-pushed): compare with main, where it branched off
             files=$(git diff --name-only "$(git merge-base origin/main "$AFTER")" "$AFTER")
           else
             files=$(git diff --name-only "$BEFORE" "$AFTER")
@@ -91,7 +91,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git commit -am "Version: app $APP, firmware $FW"
-            git push origin HEAD:dev
+            git push origin HEAD:develop
           fi
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 

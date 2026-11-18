@@ -11,13 +11,13 @@ They use common toolchains for such devices, so the workflows can be reused for 
 
 ## Branches and builds
 
-`dev` is the integration branch: work is done on feature branches and merged into `dev` by pull request.
-`main` gets `dev`'s commits when a release is due, and releases are tagged on `main`.
+`develop` is the integration branch: work is done on feature branches and merged into `develop` by pull request.
+`main` gets `develop`'s commits when a release is due, and releases are tagged on `main`.
 
 | Event | Workflow | Version bump |
 |---|---|---|
 | Pull request (into any branch) | `android.yml` / `firmware.yml` for the folder it changes; the result is shown as a check on the pull request | No |
-| Push or merge to `dev` | `ci.yml`: builds what changed, plus release notes | Yes (below) |
+| Push or merge to `develop` | `ci.yml`: builds what changed, plus release notes | Yes (below) |
 | Push or merge to `main` or another branch | `android.yml` / `firmware.yml` for the folder it changes | No |
 | Tag `v*` | `release.yml` (see Releases) | No |
 
@@ -33,21 +33,21 @@ Versions have the form `major.minor.revision.build` and live in the source code:
 | `android/version.properties` | App version |
 | `firmware/Core/Inc/version.h` | Firmware version (`FW_VERSION_*`) and the app version the firmware is paired with (`UI_VERSION_*`) |
 
-Edit `major`, `minor` and `revision` by hand. The build number is CI's: on every push (merge) to `dev`, `ci.yml` runs
-`ci/version.sh` and commits the result back to `dev` before building:
+Edit `major`, `minor` and `revision` by hand. The build number is CI's: on every push (merge) to `develop`, `ci.yml` runs
+`ci/version.sh` and commits the result back to `develop` before building:
 
 - the app changed: app build + 1, the new app version is written into `UI_VERSION_*`, and so the firmware
   (whose source changed) gets build + 1 too;
 - only the firmware changed: firmware build + 1.
 
 Build numbers never reset, so the app's `versionCode` (= its build number) always increases.
-Only `dev` changes build numbers, so merging `dev` into `main` never conflicts on the version files;
-`main` carries the version of the `dev` build it was merged from. After the bump, pull before committing on `dev`.
+Only `develop` changes build numbers, so merging `develop` into `main` never conflicts on the version files;
+`main` carries the version of the `develop` build it was merged from. After the bump, pull before committing on `develop`.
 The firmware keeps `"CITest FW <fw version> for app <app version>"` in flash.
 
 ## Commit messages and release notes
 
-Release notes are generated from git for every build of `dev` (artifact `ReleaseNotes-…`, also shown on the
+Release notes are generated from git for every build of `develop` (artifact `ReleaseNotes-…`, also shown on the
 run page) and for every release (release text, plus `.md` and `.docx` files). They list the features and the
 defect fixes since the baseline: the previous `v*` tag, or the tag or commit written in a file `release-baseline`.
 
@@ -67,12 +67,12 @@ under Other changes, and CI shows a warning for each of them.
 
 ## Releases
 
-Merge `dev` into `main`, then push a tag `v*` on that commit of `main` to publish a release built from it:
+Merge `develop` into `main`, then push a tag `v*` on that commit of `main` to publish a release built from it:
 
 ```
 git switch main
 git pull
-git merge --ff-only origin/dev
+git merge --ff-only origin/develop
 git push origin main
 git tag -a v1.0 -m "CITest 1.0"
 git push origin v1.0
